@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>mp3资源</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.0.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/v-audio-player@0.2.1/lib/v-audio-player.umd.min.js"></script>
+    <!--<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-ui@2.11.1/lib/theme-chalk/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/element-ui@2.11.1/lib/index.js"></script>-->
+    <link rel="stylesheet" href="https://at.alicdn.com/t/font_1677571_ayguzt0fs6.css">
+</head>
+<body>
+<div class="container" id="app">
+    <template>
+        <div >
+            <div style="width: 800px;margin: auto;margin-right: 200px">
+                <audio v-if="flag" controls style="position: fixed;left: 20%;top: 20px">
+                    <source :src="url" type="audio/ogg">
+                    您的浏览器不支持 audio 元素。
+                </audio>
+
+                <div style="margin: 10px 0">
+                    <input v-model="req.keyword" @keyup.enter="http_list"/>
+                    <button @click="http_list">搜索</button>
+                    {{url}}
+                </div>
+                <div>
+                    <table  border="1" style="width: 100%">
+                        <tr v-for="item in list">
+                            <td width="50">
+                                <img :src="item.pic" style="width: 50px;height: 50px">
+                            </td>
+                            <td @click="http_get(item.mid)">{{item.name}} - {{item.singer}}</td>
+                            <td width="50" style="text-align: center">
+                                <!--<i @click="http_download(item.mid)" class="iconfont icon-ziyuan"></i>-->
+                                <i @click="play_(item.mid)" class="iconfont icon-bofang"></i>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+
+    </template>
+</div>
+</body>
+<script>
+
+    // 请求地址
+    const httpUrl = "https://api.bbbug.com/"
+    const app = new Vue({
+        el: '#app',
+        /*components:
+            {'VAudioPlayer'}
+        ,*/
+        data() {
+            return{
+                flag: true,
+                req: {
+                    "access_token": "909a79939c09809eea98e92aefffcdd378bd016999999909a79939c09809eea98e92aefffcdd378bd0169",
+                    "plat": "vue",
+                    "version": 10000,
+                    "room_id": 520,
+                    "keyword": "",
+                    "isHots": 0
+                },
+                list: [
+                    {
+                        /*album: "送你一朵山茶花",
+                        length: "150",
+                        mid: "4064065",
+                        name: "送你一朵山茶花",
+                        pic: "https://img2.kuwo.cn/star/albumcover/500/98/35/386050711.jpg",
+                        singer: "好妹妹",*/
+                    }
+                ],
+                url: 'https://api.bbbug.com//api/song/playurl?mid=96832'
+            }
+        },
+        mounted() {
+            this.http_list();
+        },
+        methods: {
+            play_(mid){
+                this.flag = false
+                this.url = `https://api.bbbug.com//api/song/playurl?mid=${mid}`
+                setTimeout(()=>{
+                    this.flag = true
+                },1000)
+            },
+            http_get(mid){
+                window.open(`https://api.bbbug.com//api/song/playurl?mid=${mid}`);
+            },
+            http_list() {
+                $.ajax({
+                    url: httpUrl + 'api/song/search',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: JSON.stringify(this.req),
+                    contentType: 'application/json;charset=utf-8',
+                    success: (res => {
+                        if(res.data && res.data.length>0){
+                            //this.url = `https://api.bbbug.com//api/song/playurl?mid=${res.data[0].mid}`
+                            this.play_(res.data[0].mid)
+                        }
+                        this.list = res.data
+                        this.$forceUpdate()
+                    })
+                })
+            },
+            http_download(mid) {
+                $.ajax({
+                    url: `https://api.bbbug.com//api/song/playurl?mid=${mid}`,
+                    type: 'GET',
+                    dataType: 'json',
+                    contentType: 'application/json;charset=utf-8',
+                    beforeSend: function(request) {
+                        request.setRequestHeader("Access-Control-Allow-Origin","*");
+                        request.setRequestHeader("Access-Control-Allow-Methods","GET");
+                        request.setRequestHeader("Access-Control-Allow-Headers","x-requested-with,content-type");
+                    },
+                    headers: {
+                        Accept: "Access-Control-Allow-Origin:*"
+                    },
+                    success: (res => {
+                        const blob = new Blob([data], {
+                            type: 'application/octet-stream'
+                        });
+                        const fileName = `${mid}.mp3`;
+                        var userAgent = navigator.userAgent;
+                        if('download' in document.createElement('a')) { // 非IE下载
+                            if(userAgent.indexOf("Edge") != -1) {
+                                navigator.msSaveBlob(blob, fileName);
+                            } else {
+                                const elink = document.createElement('a');
+                                elink.download = fileName;
+                                elink.style.display = 'none';
+                                elink.href = URL.createObjectURL(blob);
+                                document.body.appendChild(elink);
+                                elink.click();
+                                URL.revokeObjectURL(elink.href); // 释放URL 对象
+                                document.body.removeChild(elink);
+                            }
+                        } else { // IE10+下载
+                            navigator.msSaveBlob(blob, fileName);
+                        }
+                    })
+                })
+
+
+            }
+        },
+
+    })
+</script>
+
+<style>
+    html, body {
+        height: 100%;
+        padding: 0;
+        margin: 0;
+    }
+    html{
+        background-image: url('bg_music.svg');
+        background-repeat:no-repeat;
+        background-attachment:fixed;
+        background-position:left;
+    }
+
+    .flex {
+        display: flex;
+        justify-content: space-between;
+    }
+    table { border-collapse:collapse; border-spacing:0; }
+</style>
+
+</html>
